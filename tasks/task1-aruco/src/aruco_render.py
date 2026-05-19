@@ -27,7 +27,7 @@ ARUCO_OUTPUT_VIDEO_PATH = TASK_ROOT / "output" / "aruco_result.mp4"
 # TODO(student): use this path if you want to render one of the provided OBJ models.
 # start with cube.obj while debugging because its shape makes pose errors obvious
 # after the pose is stable, switch to another OBJ model from res/models
-MODEL_PATH = TASK_ROOT / "res" / "models" / "cube.obj"
+MODEL_PATH = TASK_ROOT / "res" / "models" / "african_head.obj"
 OUTPUT_DIR = TASK_ROOT / "output"
 
 
