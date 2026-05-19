@@ -1,9 +1,12 @@
+import torch
 import argparse
 import json
 import random
 import socket
 import sys
 from pathlib import Path
+import os
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"  
 
 ROOT = Path(__file__).resolve().parents[1]
 for module_path in (ROOT, ROOT / "src", ROOT / "tasks" / "task2-detector" / "src"):

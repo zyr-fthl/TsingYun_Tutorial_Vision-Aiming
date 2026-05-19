@@ -4,7 +4,10 @@ version = "0.1.0"
 description = "Tsingyun aiming recruitment homework"
 readme = "README.md"
 requires-python = ">=3.10"
-dependencies = []
+dependencies = [
+    "onnxscript>=0.7.0",
+    "torch>=2.11.0",
+]
 
 [project.optional-dependencies]
 dev = [
@@ -18,6 +21,9 @@ train = [
     "torch>=2.2",
     "torchvision>=0.17",
 ]
+
+[[tool.uv.index]]
+url = "https://download.pytorch.org/whl/cpu"
 
 [tool.pytest.ini_options]
 testpaths = ["tests/python"]

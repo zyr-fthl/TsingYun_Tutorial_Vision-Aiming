@@ -20,7 +20,7 @@ ARUCO_VIDEO_PATH = TASK_ROOT / "data" / "aruco" / "aruco.mp4"
 # choose the same dictionary that was used to print the marker
 # measure the black marker side length in meters and store it in MARKER_LENGTH_METERS
 ARUCO_DICTIONARY = "DICT_4X4_50"
-MARKER_LENGTH_METERS = 0.05
+MARKER_LENGTH_METERS = 0.10
 
 ARUCO_OUTPUT_VIDEO_PATH = TASK_ROOT / "output" / "aruco_result.mp4"
 
@@ -122,29 +122,53 @@ def _is_valid_pose_result(result):
 def estimate_marker_pose(marker_corners, marker_length_meters, camera_matrix, dist_coeffs):
     object_points = create_marker_object_points(marker_length_meters)
 
-    # TODO(student): Estimate one marker pose with OpenCV solvePnP.
-    # Input: detected 2D marker corners, marker size, camera_matrix, and dist_coeffs.
-    # Output: rvec and tvec.
-    # `object_points` has already been prepared for you.
-    raise NotImplementedError("estimate_marker_pose is not implemented")
+    corners_2d = marker_corners.reshape((4, 2))
+
+    success, rvec, tvec = cv2.solvePnP(
+        object_points, 
+        corners_2d, 
+        camera_matrix, 
+        dist_coeffs, 
+        flags=cv2.SOLVEPNP_IPPE_SQUARE
+    )
+    
+    if not success:
+        return None, None
+        
+    return rvec, tvec
 
 
 def render_virtual_object(frame, rvec, tvec, camera_matrix, dist_coeffs, vertices, faces):
-    # TODO(student): Render the loaded OBJ model on top of the ArUco marker.
-    # Input geometry from load_obj(...):
-    #   vertices: list of 3D points, equivalent to an array with shape (N, 3).
-    #   faces: list of triangle vertex indices, equivalent to an array with shape (M, 3).
-    # Output: the rendered frame.
-    #
-    # 1. Convert vertices and faces to numpy arrays if needed.
-    # 2. Normalize / scale / translate the model to fit above the marker.
-    # 3. Use cv2.projectPoints(...) to project 3D vertices to 2D image points.
-    # 4. For each face, collect its three projected 2D vertices.
-    # 5. Draw the triangle edges or filled triangle on frame.
-    #
-    # Model size normalization can be tricky at first; we recommend asking AI for help.
+    if not vertices or not faces:
+        return frame
+
+    pts_3d = np.array(vertices, dtype=np.float32)
     
-    raise NotImplementedError("render_virtual_object is not implemented")
+    scale = MARKER_LENGTH_METERS * 0.5
+    pts_3d[:, 0] *= scale  # 缩放 X
+    pts_3d[:, 1] *= scale  # 缩放 Y
+    pts_3d[:, 2] *= scale  # 缩放 Z
+    
+    pts_3d[:, 2] -= scale  
+
+    pts_2d, _ = cv2.projectPoints(pts_3d, rvec, tvec, camera_matrix, dist_coeffs)
+    pts_2d = np.round(pts_2d).astype(int).reshape(-1, 2)
+
+    for face in faces:
+        idx0, idx1, idx2 = face
+        pt1 = tuple(pts_2d[idx0])
+        pt2 = tuple(pts_2d[idx1])
+        pt3 = tuple(pts_2d[idx2])
+ 
+        poly_pts = np.array([pt1, pt2, pt3], dtype=np.int32)
+        
+        cv2.fillConvexPoly(frame, poly_pts, color=(255, 255, 0))
+        
+        cv2.line(frame, pt1, pt2, (0, 0, 0), 1)
+        cv2.line(frame, pt2, pt3, (0, 0, 0), 1)
+        cv2.line(frame, pt3, pt1, (0, 0, 0), 1)
+
+    return frame
 
 
 def process_frame(frame, dictionary, camera_matrix, dist_coeffs, vertices, faces):
@@ -163,15 +187,16 @@ def process_frame(frame, dictionary, camera_matrix, dist_coeffs, vertices, faces
             camera_matrix,
             dist_coeffs,
         )
-        render_virtual_object(
-            output,
-            rvec,
-            tvec,
-            camera_matrix,
-            dist_coeffs,
-            vertices,
-            faces,
-        )
+        if rvec is not None and tvec is not None: 
+            output = render_virtual_object(
+                output,
+                rvec,
+                tvec,
+                camera_matrix,
+                dist_coeffs,
+                vertices,
+                faces,
+            )
 
     return output
 

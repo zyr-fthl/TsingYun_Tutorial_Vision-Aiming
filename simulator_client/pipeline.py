@@ -1,6 +1,9 @@
 """Safe integrated pipeline used by the simulator runner."""
-
 from __future__ import annotations
+
+import os
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"  
+os.environ["USE_CPU"] = "1"                
 
 from dataclasses import dataclass
 
@@ -34,12 +37,16 @@ class FallbackPipeline:
         self.board_width_meters = board_width_meters
         self.board_height_meters = board_height_meters
         self.latency_multiplier = latency_multiplier
-        # TODO: fine-tune your arguments here
-        self.tracker = KalmanTracker(process_noise=1.0, measurement_noise=0.5)
+        self.tracker = KalmanTracker(process_noise=0.1, measurement_noise=2.0)
         self._last_time: float | None = None
         self._lost_count: int = 0
+        self._last_class_id = -1
+        
 
     def process_rgb_image(self, image: np.ndarray, camera_matrix: Matrix3x3, timestamp: float = 0.0) -> PipelineResult:
+        if not hasattr(self, '_last_class_id'):
+            self._last_class_id = -1
+        
         try:
             dt = timestamp - self._last_time if self._last_time is not None else 0.05
             self._last_time = timestamp
@@ -89,7 +96,12 @@ class FallbackPipeline:
 
             cur_x, cur_y, cur_z = positions[best_idx]
 
-            # TODO: optionally enable a hard reset here when `class_id` changes
+            current_detection = good[best_idx]
+
+            if self._last_class_id is not None and current_detection.class_id != self._last_class_id:
+                self.tracker.reset()
+
+            self._last_class_id = current_detection.class_id
 
             self.tracker.update(cur_x, cur_y, cur_z, dt)
             pred_x, pred_y, pred_z = self.tracker.predict(self.latency * self.latency_multiplier)
