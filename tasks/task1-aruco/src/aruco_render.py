@@ -145,10 +145,17 @@ def render_virtual_object(frame, rvec, tvec, camera_matrix, dist_coeffs, vertice
     pts_3d = np.array(vertices, dtype=np.float32)
     
     scale = MARKER_LENGTH_METERS * 0.5
-    pts_3d[:, 0] *= scale  # 缩放 X
-    pts_3d[:, 1] *= scale  # 缩放 Y
-    pts_3d[:, 2] *= scale  # 缩放 Z
+    pts_3d[:, 0] *= scale  # X
+    pts_3d[:, 1] *= scale  # Y
+    pts_3d[:, 2] *= scale  # Z
     
+    x_orig = pts_3d[:, 0].copy()
+    y_orig = pts_3d[:, 1].copy()
+    z_orig = pts_3d[:, 2].copy()
+    
+    pts_3d[:, 1] = z_orig 
+    pts_3d[:, 2] = -y_orig 
+
     pts_3d[:, 2] -= scale  
 
     pts_2d, _ = cv2.projectPoints(pts_3d, rvec, tvec, camera_matrix, dist_coeffs)
